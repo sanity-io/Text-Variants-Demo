@@ -10,6 +10,46 @@ import PortableText from "@/app/components/PortableText";
 import { sanityFetch } from "@/sanity/lib/live";
 import { postPagesSlugs, postQuery } from "@/sanity/lib/queries";
 import { resolveOpenGraphImage } from "@/sanity/lib/utils";
+import VariantSelector from "./VariantSelector";
+
+type ExperimentBlockContent = {
+  _type: 'experimentBlockContent'
+  default?: PortableTextBlock[]
+  active?: string
+  experimentId?: string
+  variants?: Array<{
+    _key: string
+    variantId?: string
+    experimentId?: string
+    value?: PortableTextBlock[]
+  }>
+}
+
+function isExperimentBlockContent(content: any): content is ExperimentBlockContent {
+  return content && content._type === 'experimentBlockContent';
+}
+
+function getContentValue(content: any, activeVariant?: string): PortableTextBlock[] {
+  if (!content) return [];
+  
+  if (isExperimentBlockContent(content)) {
+    // If there's an active variant, use it
+    if (activeVariant && content.variants?.length) {
+      const variant = content.variants.find(v => v.variantId === activeVariant);
+      if (variant?.value) {
+        return variant.value;
+      }
+    }
+    
+    // Otherwise use default content
+    if (content.default) {
+      return content.default;
+    }
+  }
+  
+  // If it's not experiment content, return as is
+  return Array.isArray(content) ? content : [];
+}
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -93,11 +133,10 @@ export default async function PostPage(props: Props) {
               <div className="">
                 <CoverImage image={post.coverImage} priority />
               </div>
-              {post.content?.length && (
-                <PortableText
-                  className="max-w-2xl"
-                  value={post.content as PortableTextBlock[]}
-                />
+              {post.content && (
+                <div className="space-y-4">
+                  <VariantSelector content={post.content} />
+                </div>
               )}
             </article>
           </div>

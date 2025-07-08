@@ -17,10 +17,25 @@ export const blockContent = defineType({
   name: 'blockContent',
   type: 'array',
   of: [
-    defineArrayMember({
+    {
       type: 'block',
       marks: {
         annotations: [
+          {
+            name: 'variant',
+            type: 'object',
+            title: 'Variant Term',
+            icon: () => '🔄',
+            fields: [
+              defineField({
+                name: 'originalTerm',
+                title: 'Original Term',
+                type: 'string',
+                validation: (Rule) => Rule.required(),
+                description: 'The term that will be replaced (e.g., "employee")',
+              }),
+            ],
+          },
           {
             name: 'link',
             type: 'object',
@@ -91,6 +106,6 @@ export const blockContent = defineType({
           },
         ],
       },
-    }),
+    },
   ],
 })

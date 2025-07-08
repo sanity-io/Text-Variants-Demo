@@ -4,7 +4,11 @@ export const settingsQuery = defineQuery(`*[_type == "settings"][0]`);
 
 const postFields = /* groq */ `
   _id,
-  "status": select(_originalId in path("drafts.**") => "draft", "published"),
+  "status": select(
+    _originalId in path("drafts.**") => "draft",
+    _id in path("drafts.**") => "draft",
+    "published"
+  ),
   "title": coalesce(title, "Untitled"),
   "slug": slug.current,
   excerpt,
@@ -75,13 +79,23 @@ export const morePostsQuery = defineQuery(`
 
 export const postQuery = defineQuery(`
   *[_type == "post" && slug.current == $slug] [0] {
-    content[]{
-    ...,
-    markDefs[]{
-      ...,
-      ${linkReference}
-    }
-  },
+    content{
+      _type,
+      default[]{
+        ...,
+        markDefs[]{
+          ...,
+          ${linkReference}
+        }
+      },
+      active,
+      experimentId,
+      variants[]{
+        _key,
+        client,
+        text
+      }
+    },
     ${postFields}
   }
 `);

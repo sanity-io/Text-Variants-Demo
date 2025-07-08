@@ -3,7 +3,7 @@
  * Learn more: https://www.sanity.io/docs/configuration
  */
 
-import {defineConfig} from 'sanity'
+import {defineConfig, defineField} from 'sanity'
 import {structureTool} from 'sanity/structure'
 import {visionTool} from '@sanity/vision'
 import {schemaTypes} from './src/schemaTypes'
@@ -16,6 +16,11 @@ import {
   type DocumentLocation,
 } from 'sanity/presentation'
 import {assist} from '@sanity/assist'
+import {fieldLevelExperiments} from '@sanity/personalization-plugin'
+import {customerVariants} from './src/config/variants'
+import {useClient} from 'sanity'
+import {workflow} from 'sanity-plugin-workflow'
+import type {DocumentActionProps, DocumentActionComponent} from 'sanity'
 
 // Environment variables for project configuration
 const projectId = process.env.SANITY_STUDIO_PROJECT_ID || 'your-projectID'
@@ -122,10 +127,150 @@ export default defineConfig({
     unsplashImageAsset(),
     assist(),
     visionTool(),
+    fieldLevelExperiments({
+      fields: ['string', 'blockContent'],
+      experiments: [customerVariants],
+    }),
+    workflow({
+      schemaTypes: ['page', 'post'],
+      states: [
+        {
+          id: 'draft',
+          title: 'Draft',
+          color: 'warning',
+          transitions: ['inReview', 'published']
+        },
+        {
+          id: 'inReview',
+          title: 'In Review',
+          color: 'primary',
+          transitions: ['published']
+        },
+        {
+          id: 'published',
+          title: 'Published',
+          color: 'success',
+          transitions: ['archived']
+        },
+        {
+          id: 'archived',
+          title: 'Archived',
+          color: 'danger',
+          transitions: []
+        }
+      ]
+    }),
   ],
+
+  document: {
+    actions: (prev, context) => {
+      // Add our custom actions
+      return [
+        ...prev,
+        (props: DocumentActionProps) => {
+          const client = useClient({apiVersion: '2023-10-01'})
+          
+          return {
+            label: 'Set Initial State',
+            onHandle: async () => {
+              const docType = props.type
+              const initialState = docType === 'post' ? 'inReview' : 'draft'
+              
+              try {
+                await client
+                  .patch(props.id)
+                  .set({workflowState: initialState})
+                  .commit()
+
+                return {
+                  message: `Document set to ${initialState} state`
+                }
+              } catch (err) {
+                return {
+                  message: 'Error setting workflow state',
+                  tone: 'critical'
+                }
+              }
+            }
+          }
+        },
+        (props: DocumentActionProps) => {
+          const client = useClient({apiVersion: '2023-10-01'})
+          
+          return {
+            label: 'Change State',
+            onHandle: async () => {
+              const currentState = (props.draft?.workflowState || props.published?.workflowState) as string
+              const docType = props.type as 'post' | 'page'
+
+              try {
+                // Define allowed transitions based on document type and current state
+                const transitions: Record<'post' | 'page', Record<string, string[]>> = {
+                  post: {
+                    draft: ['inReview'],
+                    inReview: ['published'],
+                    published: []
+                  },
+                  page: {
+                    draft: ['published'],
+                    published: ['archived'],
+                    archived: []
+                  }
+                }
+
+                const availableTransitions = transitions[docType]?.[currentState] || []
+
+                // Here you would typically show a UI to select the next state
+                // For now, we'll just take the first available transition
+                if (availableTransitions.length > 0) {
+                  const nextState = availableTransitions[0]
+                  await client
+                    .patch(props.id)
+                    .set({workflowState: nextState})
+                    .commit()
+
+                  return {
+                    message: `Document moved to ${nextState} state`
+                  }
+                }
+
+                return {
+                  message: 'No available transitions',
+                  tone: 'caution'
+                }
+              } catch (err) {
+                return {
+                  message: 'Error changing workflow state',
+                  tone: 'critical'
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
 
   // Schema configuration, imported from ./src/schemaTypes/index.ts
   schema: {
     types: schemaTypes,
   },
 })
+
+export function SubmitForApproval(props: any) { 
+  const client = useClient({apiVersion: "2023-10-01"})
+  return {
+    label: 'Submit for Approval',
+    onHandle: async () => {
+      try {
+        await client
+          .patch(props.id.startsWith('drafts.') ? props.id : `drafts.${props.id}`)
+          .commit()
+        window.alert('This post has been submitted for review')
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err)
+        window.alert('Error submitting for review: ' + message)
+      }
+    }    
+  } 
+}

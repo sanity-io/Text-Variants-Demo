@@ -15,6 +15,7 @@ import {
 } from "next-sanity";
 
 import ResolvedLink from "@/app/components/ResolvedLink";
+import VariantText from "@/app/components/VariantText";
 
 export default function CustomPortableText({
   className,
@@ -81,6 +82,24 @@ export default function CustomPortableText({
     marks: {
       link: ({ children, value: link }) => {
         return <ResolvedLink link={link}>{children}</ResolvedLink>;
+      },
+      variant: ({ children, value }) => {
+        const block: PortableTextBlock = {
+          _type: 'block',
+          _key: value._key,
+          children: [{ _type: 'span', text: children }],
+          markDefs: [value]
+        };
+        return <VariantText value={[block]} customerVariantId={value.customerVariantId} />;
+      },
+      variantText: ({ children, value }) => {
+        const block: PortableTextBlock = {
+          _type: 'block',
+          _key: value._key,
+          children: [{ _type: 'span', text: children }],
+          markDefs: [value]
+        };
+        return <VariantText value={[block]} customerVariantId={value.customerVariantId} />;
       },
     },
   };

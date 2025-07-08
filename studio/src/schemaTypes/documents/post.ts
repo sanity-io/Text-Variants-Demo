@@ -14,8 +14,22 @@ export const post = defineType({
   type: 'document',
   fields: [
     defineField({
+      name: 'workflowState',
+      title: 'Workflow State',
+      type: 'string',
+      initialValue: 'draft',
+      readOnly: true,
+      hidden: true
+    }),
+    defineField({
       name: 'title',
       title: 'Title',
+      type: 'string',
+      validation: (rule) => rule.required(),
+    }),
+    defineField({
+      name: 'summary',
+      title: 'Summary',
       type: 'string',
       validation: (rule) => rule.required(),
     }),
@@ -34,7 +48,7 @@ export const post = defineType({
     defineField({
       name: 'content',
       title: 'Content',
-      type: 'blockContent',
+      type: 'experimentBlockContent',
     }),
     defineField({
       name: 'excerpt',
@@ -51,24 +65,6 @@ export const post = defineType({
           imageDescriptionField: 'alt',
         },
       },
-      fields: [
-        {
-          name: 'alt',
-          type: 'string',
-          title: 'Alternative text',
-          description: 'Important for SEO and accessibility.',
-          validation: (rule) => {
-            // Custom validation to ensure alt text is provided if the image is present. https://www.sanity.io/docs/validation
-            return rule.custom((alt, context) => {
-              if ((context.document?.coverImage as any)?.asset?._ref && !alt) {
-                return 'Required'
-              }
-              return true
-            })
-          },
-        },
-      ],
-      validation: (rule) => rule.required(),
     }),
     defineField({
       name: 'date',

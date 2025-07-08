@@ -13,6 +13,14 @@ export const page = defineType({
   icon: DocumentIcon,
   fields: [
     defineField({
+      name: 'workflowState',
+      title: 'Workflow State',
+      type: 'string',
+      initialValue: 'draft',
+      readOnly: true,
+      hidden: true
+    }),
+    defineField({
       name: 'name',
       title: 'Name',
       type: 'string',
