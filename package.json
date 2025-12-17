@@ -28,6 +28,7 @@
   },
   "dependencies": {
     "@sanity/personalization-plugin": "^2.4.0",
+    "next": "^15.5.8",
     "react-is": "^19.1.0",
     "sanity-plugin-workflow": "^1.0.4"
   }
